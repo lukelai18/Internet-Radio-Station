@@ -1,0 +1,43 @@
+Snowcast is a project implementing a simplified streaming service. It has four part, a server (snowcast_server), a control client (snowcast_control), a listener client (snowcast_listener) and a protocol document. After finishing this project, it allows multiple clients to connect to the server, select a station (stream), and receive streaming data over UDP.
+
+Project Structure:
+- snowcast_server
+  - main.go
+- snowcast_listener
+  - main.go
+- snowcast_control
+  - main.go
+- pkg
+  - Protocol
+    - Protocol.go
+
+1. Snowcast Server (snowcast_server): Manages stations and streams data to clients. It can manage multiple stations, handle multiple client connections, streaming data over UDP to clients, and sending control messages over TCP.
+2. Snowcast Control (snowcast_control): A TCP client that allows users to select stations. It can connect to the server over TCP, send Hello messages with their UDP port, send SetStation commands to select and change stations, and receive Welcome and Announce messages from the server.
+3. Snowcast Listener (snowcast_listener): A UDP client that listens for streaming data. It can listen on a specified UDP port, receive streaming data from the server and output the received data.
+4. protocol document: mainly describing the struct of different messages. Like the definition of Announce, Welcome, Invalidcommand, Hello, and corresponding marshal and unmarshal functions.
+
+Some Key Part of My SnowCast:
+(1) Handling Multiple Clients and Stations
+    I use goroutines to handle the concurrency tasks. Here I have several goroutines: 
+    1. Main Goroutine: Initializes the server, sets up stations, and starts listening for incoming TCP connections
+    2. Connection Handler Goroutines (handleClient): For each client connection, use this goroutine to handle TCP communication.
+    3. TCP Writer Goroutines (tcpWriter): sending TCP messages to a specific client.
+    4. UDP Writer Goroutines (udpWriter): sending UDP packets to a specific client.
+    5. Streaming Goroutines (streamStation): For each station, reading the media file and streams data to all connected clients.
+    6. Server CLI Goroutine (startServerCLI): Handles server-side commands entered by user.
+
+(2) Handling Sending Announce Messages
+    I handle the announce message in the following parts:
+    1. Create a announceNewSong(station *Station) function to implement the announce message functionality, including initialzie announce message, marshal announce message, then send the message to clients.
+    2. When a song finishes streaming or the server restarts streaming the same or a new song. call the announceNewSong(station *Station) function.
+    3. After that, send the marshaled announce bytes into TCP Writer Goroutines, then it will be written to the snowcast_control.
+
+(3) Handling Streaming at a Periodic Rate (16KiB/s)
+    My implementation method for this part is as below:
+    1. Define a buffer (1500 bytes) to read from the media file.
+    2. Calculate the sleep duration, the sleep process should be executed after reading the media file into buffer.
+    3. If reach the end of the media file, call announceNewSong(station *Station) function.
+    4. Loop the client map in the current station, then write the buffer bytes into the UDP Writer Goroutines, then send to the snowcast_listener.
+    5. Call the time.sleep(duration), to control the speed, then start the for loop again.
+    
+    Zekai

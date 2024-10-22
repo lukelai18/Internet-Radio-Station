@@ -1,0 +1,11 @@
+*~
+\#*#
+.\#*
+*.o
+
+.DS_Store
+
+# Created by tester
+/stations
+/reference/stations
+/reference/arm64/stations
